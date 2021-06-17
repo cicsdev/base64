@@ -1,0 +1,121 @@
+
+ /*
+  * (C) Copyright IBM Corp. 2021
+  */
+
+ base64: package;
+
+ /*
+  * ------------------------------------------------------------------
+  * External Base64 encoding routine
+  * ------------------------------------------------------------------
+  */
+ dcl base64Encode entry ( *
+                        , fixed binary(32) unsigned
+                        , char(*)
+                        , fixed binary(32) unsigned
+                        )
+                  external ( 'BASE64E' )
+                  returns  ( fixed binary(31) signed byvalue )
+                  options  ( nodescriptor );
+
+ /*
+  * ------------------------------------------------------------------
+  * External Base64 decoding routine
+  * ------------------------------------------------------------------
+  */
+ dcl base64Decode entry ( char(*)
+                        , fixed binary(32) unsigned
+                        , *
+                        , fixed binary(32) unsigned
+                        )
+                  external ( 'BASE64D' )
+                  returns  ( fixed binary(31) signed byvalue )
+                  options  ( nodescriptor );
+
+ /*
+  * ------------------------------------------------------------------
+  * Main entry to this PL/I program
+  * ------------------------------------------------------------------
+  */
+ BASE64P: procedure ( InputParm )
+          options ( main, noexecops );
+
+ /* Main program arguments */
+ dcl InputParm char(*) var;
+
+ /* This application uses SYSPRINT to report status */
+ dcl SYSPRINT print;
+
+ /* Input buffer */
+ dcl inputData char(100);
+
+ /* Output buffer and length */
+ dcl outputData char(100);
+ dcl outputLength fixed binary(32) unsigned;
+
+ /* Length after encoding */
+ dcl encodedLength fixed binary(32) unsigned;
+
+ /* Return code of this program */
+ dcl rc fixed binary(31,0) init(0);
+
+ /* Text to encode */
+ dcl plaintext char(26) static init('abcdefghijklmnopqrstuvwxyz');
+
+
+ /* Setup data buffers */
+ inputData = plaintext;
+ outputData = '';
+ outputLength = size(outputData);
+
+ /* Encode data in Base64 */
+ rc = base64Encode(inputData,
+                   size(plaintext),
+                   outputData,
+                   outputLength);
+
+ /* Display the results */
+ put file(SYSPRINT) skip list('Return code   : ' || rc);
+ put file(SYSPRINT) skip list('Output length : ' || outputLength);
+ put file(SYSPRINT) skip list('Base64        : ' || outputData);
+ put file(SYSPRINT) skip list('');
+
+ /* Exit early if bad rc */
+ if rc <> 0 then go to base64End;
+
+
+ /* Setup data buffers */
+ inputData = '';
+ inputData = SUBSTR(outputData,1,outputLength);
+ encodedLength = outputLength;
+ outputData = '';
+ outputLength = size(outputData);
+
+ /* Decode data from Base64 */
+ rc = base64Decode(inputData,
+                   encodedLength,
+                   outputData,
+                   outputLength);
+
+ /* Display the results */
+ put file(SYSPRINT) skip list('Return code   : ' || rc);
+ put file(SYSPRINT) skip list('Output length : ' || outputLength);
+ put file(SYSPRINT) skip list('Plaintext     : ' || outputData);
+
+
+ base64End:
+
+ /* All complete */
+ call pliretc(rc);
+ return;
+
+ /*
+  * ------------------------------------------------------------------
+  * End of main procedure
+  * ------------------------------------------------------------------
+  */
+
+ end BASE64P;
+
+ end base64;
