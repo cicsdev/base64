@@ -275,8 +275,7 @@ Pad3Skip DS    0H
 *
          CIJE  R3,PadChar,Pad4     Padding character?
 *
-         LTR   R10,R10             Not padding: already got a pad char?
-         JNZ   DataNotValid        Error if padding, then non-padding
+         CIJNE R10,0,DataNotValid  Error if padding, then non-padding
 *
          ROSBG R4,R3,58,63         OR lo 6 bits into R4
          J     Pad4Skip
