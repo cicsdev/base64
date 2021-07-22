@@ -57,7 +57,7 @@ BASE64E  TITLE 'Subroutine to Base64 encode data'
 *  R0-R14 : (unchanged)
 *  R15    : Return code
 *
-* This routine is rentrant
+* This routine is reentrant
 *
 * ---------------------------------------------------------------------
 *
@@ -101,7 +101,7 @@ BASE64E  TITLE 'Subroutine to Base64 encode data'
 *
 * Compilation notes:
 *
-*   Requires a minimum of OPTABLE(ZS4)
+*   Requires a minimum of OPTABLE(ZS5)
 *
 *----------------------------------------------------------------------
          EJECT ,

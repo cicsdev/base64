@@ -58,7 +58,7 @@ BASE64D  TITLE 'Subroutine to decode Base64 data'
 *  R0-R14 : (unchanged)
 *  R15    : Return code
 *
-* This routine is rentrant
+* This routine is reentrant
 *
 * ---------------------------------------------------------------------
 *
@@ -104,7 +104,7 @@ BASE64D  TITLE 'Subroutine to decode Base64 data'
 *
 * Compilation notes:
 *
-*   Requires a minimum of OPTABLE(ZS4)
+*   Requires a minimum of OPTABLE(ZS5)
 *
 *----------------------------------------------------------------------
          EJECT ,

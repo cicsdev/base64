@@ -72,7 +72,7 @@ non-XPLINK C application.
 ## Implementation
 
 The [Base64 encode](base64e.asm) and [Base64 decode](base64d.asm) services are written in non-LE conforming
-assembly. The modules use relative addressing and require an OPTABLE minimum of ZS4 to be configured in HLASM.
+assembly. The modules use relative addressing and require an OPTABLE minimum of ZS5 to be configured in HLASM.
 
 # License
 
