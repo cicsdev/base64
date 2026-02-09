@@ -235,31 +235,34 @@ MainLoop DS    0H
 *
 * ------ Byte 1
          RISBLG R1,R2,56,X'80'+63,-24   Work on top byte
+*
+         CIJE  R1,PadChar,DataNotValid   Not valid to have pad here
+*
          LLC   R3,0(R1,R9)         Get correct bit pattern from table
 *
          CIJE  R3,BadChar,DataNotValid   Branch if not valid character
-*
-         CIJE  R3,PadChar,DataNotValid   Not valid to have pad here
 *
          ROSBG R4,R3,40,45,18      Shift R3 18 left then OR into R4
 *
 * ------ Byte 2
          RISBLG R1,R2,56,X'80'+63,-16   Work on 2nd byte
+*
+         CIJE  R1,PadChar,DataNotValid   Not valid to have pad here
+*
          LLC   R3,0(R1,R9)         Get correct bit pattern from table
 *
          CIJE  R3,BadChar,DataNotValid   Branch if not valid character
-*
-         CIJE  R3,PadChar,DataNotValid   Not valid to have pad here
 *
          ROSBG R4,R3,46,51,12      Shift R3 12 left then OR into R4
 *
 * ------ Byte 3
          RISBLG R1,R2,56,X'80'+63,-8    Work on 3rd byte
+*
+         CIJE  R1,PadChar,Pad3     Padding character?
+*
          LLC   R3,0(R1,R9)         Get correct bit pattern from table
 *
          CIJE  R3,BadChar,DataNotValid   Branch if not valid character
-*
-         CIJE  R3,PadChar,Pad3     Padding character?
 *
          ROSBG R4,R3,52,57,6       Shift R3 6 left then OR into R4
          J     Pad3Skip
@@ -269,11 +272,12 @@ Pad3Skip DS    0H
 *
 * ------ Byte 4
          RISBLG R1,R2,56,X'80'+63  Work on 4th byte
+*
+         CIJE  R1,PadChar,Pad4     Padding character?
+*
          LLC   R3,0(R1,R9)         Get correct bit pattern from table
 *
          CIJE  R3,BadChar,DataNotValid   Branch if not valid character
-*
-         CIJE  R3,PadChar,Pad4     Padding character?
 *
          CIJNE R10,0,DataNotValid  Error if padding, then non-padding
 *
