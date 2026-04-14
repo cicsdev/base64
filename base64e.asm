@@ -1,7 +1,7 @@
 BASE64E  TITLE 'Subroutine to Base64 encode data'
 * ---------------------------------------------------------------------
 *
-* (C) Copyright IBM Corp. 2021
+* (C) Copyright IBM Corp. 2021, 2026
 *
 * ---------------------------------------------------------------------
 *
@@ -218,34 +218,47 @@ Rem3     DS    0H                  At least 3 chars remaining
 * Take data from R2, convert, and write to storage. Mostly achieved
 * by the ROTATE THEN INSERT SELECTED BITS LOW instruction.
 *
-*   RISBLG R3,R2,58,X'80'+63,-26
+*   RISBLGZ R3,R2,58,63,-26
 *
 * Takes contents of R2, rotates right by 26 bits, stores bits 58
-* through 63 into R3 and zeroes remaining bits (X'80' flag).
+* through 63 into R3 and zeroes remaining bits in the low half of R3
+* (see note regarding grande instructions below).
+*
+* RISBLGZ is provided by HLASM as an extended mnemonic for the RISBLG
+* instruction.
 *
 * The extracted 6-bit value in R3 is then used as an index into the
 * translation table addressed by R9.
+*
+* Grande instructions
+*
+* RISBLG/Z is a grande (64-bit) instruction, however we use the LOW
+* variant and bits 0-31 of the first operand are unchanged. The second
+* operand is always unchanged.
+*
+* As a result of the above, this module does not need to be concerned
+* with saving the high halves of any registers.
 *----------------------------------------------------------------------
 DoOutput DS    0H
 *                              Write first char (always needed)
-         RISBLG R3,R2,58,X'80'+63,-26  Hi 6 bits of #1
+         RISBLGZ R3,R2,58,63,-26   Hi 6 bits of #1
          LLC   R4,0(R3,R9)         Get correct character from table
          STC   R4,0(R8,R6)         Save char at offset 0
 *
 *                              Write second char (always needed)
-         RISBLG R3,R2,58,X'80'+63,-20  Lo 2 bits of #1, hi 4 bits of #2
+         RISBLGZ R3,R2,58,63,-20   Lo 2 bits of #1, hi 4 bits of #2
          LLC   R4,0(R3,R9)         Get correct character from table
          STC   R4,1(R8,R6)         Save char at offset 1
 *
 *                              Write third char (may skip to pad)
          CIJE  R10,2,PadTwo        Two bytes of padding needed?
-         RISBLG R3,R2,58,X'80'+63,-14  Lo 4 bits of #2, hi 2 bits of #3
+         RISBLGZ R3,R2,58,63,-14   Lo 4 bits of #2, hi 2 bits of #3
          LLC   R4,0(R3,R9)         Get correct character from table
          STC   R4,2(R8,R6)         Save char at offset 2
 *
 *                              Write fourth char (may skip to pad)
          CIJE  R10,1,PadOne        One byte of padding needed?
-         RISBLG R3,R2,58,X'80'+63,-8   Only keep lo 6 bits of #3
+         RISBLGZ R3,R2,58,63,-8    Only keep lo 6 bits of #3
          LLC   R4,0(R3,R9)         Get correct character from table
          STC   R4,3(R8,R6)         Save char at offset 3
 *
