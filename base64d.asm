@@ -1,7 +1,7 @@
 BASE64D  TITLE 'Subroutine to decode Base64 data'
 * ---------------------------------------------------------------------
 *
-* (C) Copyright IBM Corp. 2021
+* (C) Copyright IBM Corp. 2021, 2026
 *
 * ---------------------------------------------------------------------
 *
@@ -214,10 +214,14 @@ MainLoop DS    0H
 * Take data in R2 and decode, save as low 24 bits in R4. Mostly
 * achieved by the ROTATE THEN INSERT SELECTED BITS LOW instruction.
 *
-*   RISBLG R1,R2,56,X'80'+63,-24
+*   RISBLGZ R1,R2,56,63,-24
 *
 * Takes contents of R2, rotates right by 24 bits, stores bits 56
-* through 63 into R1 and zeroes remaining bits (X'80' flag).
+* through 63 into R1 and zeroes remaining bits in the low half of R1
+* (see note regarding grande instructions below).
+*
+* RISBLGZ is provided by HLASM as an extended mnemonic for the RISBLG
+* instruction.
 *
 * The extracted 8-bit value in R1 is then used as an index into the
 * translation table addressed by R9.
@@ -230,11 +234,24 @@ MainLoop DS    0H
 * 4 sets of 6 bits and accumulate them in R4, one input byte at a time,
 * forming 3 output bytes of 8 bits each.
 *
+* Grande instructions
+*
+* RISBLG/Z is a grande (64-bit) instruction, however we use the LOW
+* variant and bits 0-31 of the first operand are unchanged. The second
+* operand is always unchanged.
+*
+* ROSBG is the other grande instruction used in this module, however
+* we only ever target bits 40 through 63 of the first operand. The
+* second operand is always unchanged.
+*
+* As a result of the above, this module does not need to be concerned
+* with saving the high halves of any registers.
+*
 *----------------------------------------------------------------------
          LHI   R4,0                Clear target reg
 *
 * ------ Byte 1
-         RISBLG R1,R2,56,X'80'+63,-24   Work on top byte
+         RISBLGZ R1,R2,56,63,-24   Work on top byte
          LLC   R3,0(R1,R9)         Get correct bit pattern from table
 *
          CIJE  R3,BadChar,DataNotValid   Branch if not valid character
@@ -244,7 +261,7 @@ MainLoop DS    0H
          ROSBG R4,R3,40,45,18      Shift R3 18 left then OR into R4
 *
 * ------ Byte 2
-         RISBLG R1,R2,56,X'80'+63,-16   Work on 2nd byte
+         RISBLGZ R1,R2,56,63,-16   Work on 2nd byte
          LLC   R3,0(R1,R9)         Get correct bit pattern from table
 *
          CIJE  R3,BadChar,DataNotValid   Branch if not valid character
@@ -254,7 +271,7 @@ MainLoop DS    0H
          ROSBG R4,R3,46,51,12      Shift R3 12 left then OR into R4
 *
 * ------ Byte 3
-         RISBLG R1,R2,56,X'80'+63,-8    Work on 3rd byte
+         RISBLGZ R1,R2,56,63,-8    Work on 3rd byte
          LLC   R3,0(R1,R9)         Get correct bit pattern from table
 *
          CIJE  R3,BadChar,DataNotValid   Branch if not valid character
@@ -268,7 +285,7 @@ Pad3     AHI   R10,1               Padding is valid here
 Pad3Skip DS    0H
 *
 * ------ Byte 4
-         RISBLG R1,R2,56,X'80'+63  Work on 4th byte
+         RISBLGZ R1,R2,56,63  Work on 4th byte
          LLC   R3,0(R1,R9)         Get correct bit pattern from table
 *
          CIJE  R3,BadChar,DataNotValid   Branch if not valid character
@@ -380,6 +397,19 @@ RC_OutAddrNull          EQU  80
 RC_OutLenAddrNull       EQU  84
 RC_InputDataNotValid    EQU  88
 *
+* The following tables take a Base64 input character and convert it to
+* the appropriate 6-bit output value. For example, an input character
+* of "a" in EBCDIC (offset x'81' in this table) will translate to an
+* output bit pattern of x'1A' = b'011010'.
+*
+* This table also contains two "magic numbers": x'40' and x'7F'. These
+* are defined using the HLASM EQUate instruction below.
+*
+* x'40' allows the code to easily test for the padding character ("=")
+* on the input, regardless of whether we are reading EBCDIC or ASCII.
+* x'7F' is used to indicate an input character that is not valid in
+* the Base64 alphabet.
+*
 * Table to convert from Base64 using an EBCDIC codepage
 Table64  DC    XL16'7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F'       00-0F
          DC    XL16'7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F'       10-1F
@@ -398,7 +428,7 @@ Table64  DC    XL16'7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F'       00-0F
          DC    XL16'7F7F12131415161718197F7F7F7F7F7F'       E0-EF
          DC    XL16'3435363738393A3B3C3D7F7F7F7F7F7F'       F0-FF
 *
-* Table to convert from Base64 using as ASCII codepage
+* Table to convert from Base64 using an ASCII codepage
 Table64A DC    XL16'7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F'       00-0F
          DC    XL16'7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F7F'       10-1F
          DC    XL16'7F7F7F7F7F7F7F7F7F7F7F3E7F7F7F3F'       20-2F
